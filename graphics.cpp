@@ -5,22 +5,24 @@
 
 #define det(q, w, e, r) ((q)*(r) - (w)*(e))
 
-sf::Vector2f find_barycenter(std::vector<sf::CircleShape> dots){
+sf::Vector2f find_barycenter(std::vector<sf::Vector2f> dots){
 	sf::Vector2f barycenter, next_coords, current_coords;
-	double area, area_sum = 0, x_sum = 0, y_sum = 0, n = dots.size();
+	double area, intervalue, area_sum = 0, x_sum = 0, y_sum = 0, n = dots.size();
 	for(int i = 0; i < n; i++){
-		current_coords = dots[i].getPosition();
+		current_coords = dots[i];
 		if(i != n - 1){
-			next_coords = dots[i + 1].getPosition();
+			next_coords = dots[i + 1];
 		}
 		else{
-			next_coords = dots[0].getPosition();
+			next_coords = dots[0];
 		}
-		double intervalue = (current_coords.x * next_coords.y - next_coords.x * current_coords.y);
+
+		intervalue = (current_coords.x * next_coords.y - next_coords.x * current_coords.y);
 		x_sum += (current_coords.x + next_coords.x)*intervalue;
 		y_sum += (current_coords.y + next_coords.y)*intervalue;
 		area_sum += intervalue;
 	}
+
 	area = area_sum/2;
 	barycenter.x = x_sum/(6*area);
 	barycenter.y = y_sum/(6*area);
@@ -73,23 +75,23 @@ bool segment_intersect(sf::Vector2f A, sf::Vector2f B, sf::Vector2f C, sf::Vecto
 	return onSegment(A, B, dot_x, dot_y) && onSegment(C, D, dot_x, dot_y);
 }
 
-bool intersect_shape(std::vector<sf::CircleShape> first_shape, std::vector<sf::CircleShape> second_shape){
+bool intersect_shape(std::vector<sf::Vector2f> first_shape, std::vector<sf::Vector2f> second_shape){
 	sf::Vector2f A, B, C, D;
 	for(int i = 0; i < first_shape.size(); i++ ){
-		A = first_shape[i].getPosition();
+		A = first_shape[i];
 		if(i == first_shape.size() - 1){
-			B = first_shape[0].getPosition();
+			B = first_shape[0];
 		}
 		else{
-			B = first_shape[i + 1].getPosition();	
+			B = first_shape[i + 1];	
 		}
 		for(int j = 0; j < second_shape.size(); j++){
-			C = second_shape[j].getPosition();
+			C = second_shape[j];
 			if(j == first_shape.size() - 1){
-				D = first_shape[0].getPosition();
+				D = first_shape[0];
 			}
 			else{
-				D = first_shape[j + 1].getPosition();	
+				D = first_shape[j + 1];	
 			}
 			if(segment_intersect(A, B, C, D)) return true;
 		}
@@ -97,7 +99,7 @@ bool intersect_shape(std::vector<sf::CircleShape> first_shape, std::vector<sf::C
 	return false;
 }
 
-bool intersect_tiles(std::vector<std::vector<sf::CircleShape>> tiles, std::vector<sf::CircleShape> shape){
+bool intersect_tiles(std::vector<std::vector<sf::Vector2f>> tiles, std::vector<sf::Vector2f> shape){
 	for(int i = 0; i < tiles.size(); i++){
 		if(intersect_shape(tiles[i], shape)){
 			return true;
@@ -112,8 +114,9 @@ int main()
 	int optimized = 0;
 	int shiftx, y;
 	sf::RenderWindow window(sf::VideoMode(1366, 768), "SFML works!");
-	std::vector<sf::CircleShape> dots = {};
-	std::vector<std::vector<sf::CircleShape>> tiles = {};
+	sf::Vector2f barycenter;
+	std::vector<sf::Vector2f> dots = {};
+	std::vector<std::vector<sf::Vector2f>> tiles = {};
 	float m, n;
 	double new_dist;
 
@@ -127,16 +130,9 @@ int main()
 				window.close();
 		}
 
-		sf::Vector2i mouse_position = sf::Mouse::getPosition(window);
 		if (sf::Mouse::isButtonPressed(sf::Mouse::Left)){
 			if(!pressed){
-				for(unsigned long i = 0; i < dots.size(); i++){
-					sf::Vector2f position = dots[i].getPosition();
-				}
-				sf::CircleShape shape(10);
-				shape.setFillColor(sf::Color::Green);
-				shape.setPosition(mouse_position.x, mouse_position.y);
-				dots.push_back(shape);
+				dots.push_back(sf::Vector2f(sf::Mouse::getPosition(window)));
 				pressed = true;
 			}
 		}
@@ -144,56 +140,44 @@ int main()
 			pressed = false;
 		}
 		
-		if(!dot_in && dots.size() == 3){
-			tiles.push_back(dots);
-			sf::CircleShape barycenter(10);
-			barycenter.setFillColor(sf::Color::Red);
-			barycenter.setPosition(find_barycenter(dots));
-			n = barycenter.getPosition().x;
-			m = barycenter.getPosition().y;
-			dot_in = true;
-		}
+		barycenter = find_barycenter(dots);
+		n = barycenter.x;
+		m = barycenter.y;
 
-		if(dots.size() == 3 and optimized < 8){
-			std::cout << "entered " << optimized << std::endl;
-			std::vector<sf::CircleShape> optimized_dots;
+		if(dots.size() == 3){
+			std::vector<sf::Vector2f> optimized_dots;
 			double dist = 1e18;
 			for(int i = -n; i < 1366 - n; i += 10){
 				for(int j =  -m; j < 768 - m; j += 10){
-					std::vector<sf::CircleShape> new_dots;
+					std::vector<sf::Vector2f> new_dots;
 					for(int dot = 0; dot < dots.size(); dot++){
-						new_dots.push_back(sf::CircleShape(10));
-						new_dots[dot].setPosition(dots[dot].getPosition().x + i, dots[dot].getPosition().y + j);
+						new_dots.push_back(sf::Vector2f(dots[dot].x + i, dots[dot].y + j));
 					}
 					new_dist = sqrt(pow(find_barycenter(new_dots).x - n, 2) + pow(find_barycenter(new_dots).y - m, 2));
-					if(intersect_tiles(tiles, new_dots)){
-						for(int k = 0; k < new_dots.size(); k++){
-							std::cout << new_dots[k].getPosition().x << " " << new_dots[k].getPosition().y << std::endl;
-						}
-						std::cout << std::endl;
-					}
 					if((new_dist < dist) && (!intersect_tiles(tiles, new_dots))){
 						dist = new_dist;
-						optimized_dots = std::vector(new_dots);
+						optimized_dots = std::vector<sf::Vector2f>(new_dots);
 					}
 				}
 			}
 			tiles.push_back(optimized_dots);
-			optimized++;
 		}
 
 		for(unsigned long i = 0; i < dots.size(); i++){
-			window.draw(dots[i]);
+			sf::CircleShape shape(10);
+			shape.setPosition(dots[i]);
+			shape.setFillColor(sf::Color::Green);
+			window.draw(shape);
 		}
 		
-		for(int j = 0; j < tiles.size(); j++){
-			for(int i = 0; i < tiles[j].size(); i++){
-				tiles[j][i].setFillColor(sf::Color::Magenta);
-				window.draw(tiles[j][i]);
+		for(int i = 0; i < tiles.size(); i++){
+			for(int j = 0; j < tiles[i].size(); j++){
+				sf::CircleShape shape(10);
+				shape.setPosition(tiles[i][j]);
+				shape.setFillColor(sf::Color::Magenta);
+				window.draw(shape);
 			}
 		}
-		//if(dots.size() > 0)	std::cout << dots[0].getPosition().x << std::endl;
-		//window.draw(barycenter);
 		window.display();
 	}
 
