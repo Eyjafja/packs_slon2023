@@ -63,6 +63,7 @@ bool segment_intersect(sf::Vector2f A, sf::Vector2f B, sf::Vector2f C, sf::Vecto
 		b2 = (C.y - D.y)/(C.x - D.x);
 		c2 = C.y - b2*C.x;
 	}
+
 	den = det(a1, b1, a2, b2);
 	num = det(c1, b1, c2, b2);
 	if((std::abs(den) < 1e-9) && (std::abs(num) < 1e-9)){
@@ -87,13 +88,16 @@ bool intersect_shape(std::vector<sf::Vector2f> first_shape, std::vector<sf::Vect
 		}
 		for(int j = 0; j < second_shape.size(); j++){
 			C = second_shape[j];
-			if(j == first_shape.size() - 1){
-				D = first_shape[0];
+			if(j == second_shape.size() - 1){
+				D = second_shape[0];
 			}
 			else{
-				D = first_shape[j + 1];	
+				D = second_shape[j + 1];	
 			}
-			if(segment_intersect(A, B, C, D)) return true;
+			if(segment_intersect(A, B, C, D)){
+				std::cout << "{" << A.x << " " << A.y << "} {" << B.x << " " << B.y << "} {" << C.x << " " << C.y << "} {" << D.x << " " << D.y << "}" << std::endl;
+				return true;
+			}
 		}
 	}
 	return false;
@@ -110,17 +114,21 @@ bool intersect_tiles(std::vector<std::vector<sf::Vector2f>> tiles, std::vector<s
 
 int main()
 {
-	bool pressed = false, dot_in = false;
+	bool button_pressed = false, key_pressed = false;
 	int optimized = 0;
 	int shiftx, y;
-	sf::RenderWindow window(sf::VideoMode(1366, 768), "SFML works!");
+	sf::ContextSettings settings;
+    settings.antialiasingLevel = 8.0;
+	sf::RenderWindow window(sf::VideoMode(1366, 768), "SFML works!", sf::Style::Default, settings);
 	sf::Vector2f barycenter;
 	std::vector<sf::Vector2f> dots = {};
+	//std::vector<sf::Vector2f> test_dots = {sf::Vector2f(0, 100), sf::Vector2f(12, 122), sf::Vector2f(20, 95)};
+	//std::cout << intersect_shape(dots, test_dots) << std::endl;
 	std::vector<std::vector<sf::Vector2f>> tiles = {};
 	float m, n;
 	double new_dist;
 
-	
+	//system("cvlc \"/home/Eyjafja/не смотри умрешь [SrKbIj5uexk].opus\"");	
 	while (window.isOpen()){
 		window.clear();
 
@@ -131,20 +139,30 @@ int main()
 		}
 
 		if (sf::Mouse::isButtonPressed(sf::Mouse::Left)){
-			if(!pressed){
+			if(!button_pressed){
 				dots.push_back(sf::Vector2f(sf::Mouse::getPosition(window)));
-				pressed = true;
+				button_pressed = true;
 			}
 		}
 		else{
-			pressed = false;
+			button_pressed = false;
+		}
+
+		if(sf::Keyboard::isKeyPressed(sf::Keyboard::Enter)){
+			if(!key_pressed){
+				tiles.push_back(dots);
+				key_pressed = true;
+			}
+		}
+		else{
+			key_pressed = false;
 		}
 		
 		barycenter = find_barycenter(dots);
 		n = barycenter.x;
 		m = barycenter.y;
-
-		if(dots.size() == 3){
+		
+		if(tiles.size() > 0){
 			std::vector<sf::Vector2f> optimized_dots;
 			double dist = 1e18;
 			for(int i = -n; i < 1366 - n; i += 10){
@@ -160,23 +178,26 @@ int main()
 					}
 				}
 			}
+			std::cout << dist << std::endl;
 			tiles.push_back(optimized_dots);
 		}
 
 		for(unsigned long i = 0; i < dots.size(); i++){
-			sf::CircleShape shape(10);
+			sf::ConvexShape shape(10);
 			shape.setPosition(dots[i]);
 			shape.setFillColor(sf::Color::Green);
 			window.draw(shape);
 		}
 		
 		for(int i = 0; i < tiles.size(); i++){
+			sf::ConvexShape shape(tiles[i].size());
 			for(int j = 0; j < tiles[i].size(); j++){
-				sf::CircleShape shape(10);
-				shape.setPosition(tiles[i][j]);
-				shape.setFillColor(sf::Color::Magenta);
-				window.draw(shape);
+				shape.setPoint(j, tiles[i][j]);
+				shape.setFillColor(sf::Color::Black);
+				shape.setOutlineThickness(2);
+				shape.setOutlineColor(sf::Color::White);
 			}
+			window.draw(shape);
 		}
 		window.display();
 	}
