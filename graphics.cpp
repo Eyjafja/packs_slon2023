@@ -35,7 +35,7 @@ bool onSegment(sf::Vector2f A, sf::Vector2f B, float x, float y){
 	x2 = std::min(A.x, B.x);
 	y1 = std::max(A.y, B.y);
 	y2 = std::min(A.y, B.y);
-	return (x1 - x > 1e-9) && (x2 - x < 1e-9) && (y1 - y > 1e-9) && (y2 - y < 1e-9);
+	return (x1 - x >= -1e-9) && (x2 - x <= 1e-9) && (y1 - y >= -1e-9) && (y2 - y <= 1e-9);
 }
 
 bool segment_intersect(sf::Vector2f A, sf::Vector2f B, sf::Vector2f C, sf::Vector2f D){
