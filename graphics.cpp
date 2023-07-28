@@ -111,12 +111,11 @@ bool intersect_tiles(std::vector<std::vector<sf::Vector2f>> tiles, std::vector<s
 
 int main()
 {
-	bool button_pressed = false, key_pressed = false;
-	int optimized = 0;
+	bool button_pressed = false, key_pressed = false, optimized = false;
 	int shiftx, y;
 	sf::ContextSettings settings;
     settings.antialiasingLevel = 8.0;
-	sf::RenderWindow window(sf::VideoMode(1366, 768), "SFML works!", sf::Style::Default, settings);
+	sf::RenderWindow window(sf::VideoMode(1366, 768), "Packing", sf::Style::Default, settings);
 	sf::Vector2f barycenter, shift, new_dot;
 	std::vector<sf::Vector2f> dots = {};
 	std::vector<std::vector<sf::Vector2f>> tiles = {};
@@ -124,7 +123,7 @@ int main()
 	double new_dist;
 	
 	while (window.isOpen()){
-		window.clear();
+		window.clear(sf::Color(128, 128, 128));
 
 		sf::Event event;
 		while (window.pollEvent(event)){
@@ -156,11 +155,11 @@ int main()
 		n = barycenter.x;
 		m = barycenter.y;
 		
-		if(tiles.size() > 0){
+		if(tiles.size() > 0 && !optimized){
 			std::vector<sf::Vector2f> optimized_dots;
 			double dist = 1e18;
-			for(int i = -n - 100; i < 1600 - n; i += 10){
-				for(int j =  -m - 100; j < 900 - m; j += 10){
+			for(int i = -n - 1000; i < 2366 - n; i += 10){
+				for(int j =  -m - 1000; j < 1768 - m; j += 10){
 					std::vector<sf::Vector2f> new_dots;
 					for(int dot = 0; dot < dots.size(); dot++){
 						new_dots.push_back(sf::Vector2f(dots[dot].x + i, dots[dot].y + j));
@@ -173,14 +172,17 @@ int main()
 					}
 				}
 			}
+			if(dist == 1e18){
+				optimized = true;
+				std::cout << "optimized" << std::endl;
+			}
 
 			int number_tiles = tiles.size();
 
 			for(int shape = 0; shape < number_tiles; shape++){
-				for(int multiplier = 1; multiplier < 10; multiplier++){
+				unsigned multiplier = 1;
+				while((std::abs(shift.x * multiplier) < 1366) && (std::abs(shift.y * multiplier) < 768)){
 					std::vector<sf::Vector2f> new_shape;
-					std::cout << shape << std::endl;
-					std::cout << tiles.size() << std::endl;
 					for(int dot = 0; dot < dots.size(); dot++){
 						new_dot = tiles[shape][dot];
 						new_dot.x += shift.x * multiplier;
@@ -201,25 +203,26 @@ int main()
 					if(!intersect_tiles(tiles, new_shape)){
 						tiles.push_back(new_shape);	
 					}
+					multiplier++;
 				}
 			}
+		}		
+		
+		for(int i = 0; i < tiles.size(); i++){
+			sf::ConvexShape shape(tiles[i].size());
+			for(int j = 0; j < tiles[i].size(); j++){
+				shape.setPoint(j, tiles[i][j]);
+				shape.setFillColor(sf::Color(192, 192, 192));
+				shape.setOutlineThickness(1);
+				shape.setOutlineColor(sf::Color::Black);
+			}
+			window.draw(shape);
 		}
 
 		for(unsigned long i = 0; i < dots.size(); i++){
 			sf::CircleShape shape(10);
 			shape.setPosition(dots[i]);
 			shape.setFillColor(sf::Color::Green);
-			window.draw(shape);
-		}
-		
-		for(int i = 0; i < tiles.size(); i++){
-			sf::ConvexShape shape(tiles[i].size());
-			for(int j = 0; j < tiles[i].size(); j++){
-				shape.setPoint(j, tiles[i][j]);
-				shape.setFillColor(sf::Color::White);
-				shape.setOutlineThickness(2);
-				shape.setOutlineColor(sf::Color::Black);
-			}
 			window.draw(shape);
 		}
 		window.display();
