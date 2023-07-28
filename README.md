@@ -10,6 +10,6 @@ How to install:
 
 4. ```make release```
 
-How to use
+How to use:
 
 points should be specified with the left mouse button, and the polygon should be confirmed by pressing enter.
