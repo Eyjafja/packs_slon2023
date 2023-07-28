@@ -1,4 +1,4 @@
-# Encloses the specified polygon, written in C++ using sfml.
+# Program that incloses the specified polygon, written in C++ using sfml on Slon summer school.
 ## How to install:
 
 1. install a g++, make, git and sfml
