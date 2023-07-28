@@ -1,7 +1,7 @@
 # Encloses the specified polygon, written in C++ using sfml.
 ## How to install:
 
-1. install a c++ compilier and sfml
+1. install a g++, make, git and sfml
 
 2. ```git clone https://github.com/Eyjafja/packs_slon2023```
 
