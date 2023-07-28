@@ -1,4 +1,4 @@
-# Program that packs the specified polygon, written in C++ using sfml on Slon summer school.
+# Program that packs the specified polygon.
 ## How to install:
 
 1. install a g++, make, git and sfml
