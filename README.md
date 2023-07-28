@@ -1,6 +1,5 @@
-Encloses the specified polygon, written in C++ using sfml.
-
-How to install:
+## Encloses the specified polygon, written in C++ using sfml.
+# How to install:
 
 1. install a c++ compilier and sfml
 
@@ -10,6 +9,5 @@ How to install:
 
 4. ```make release```
 
-How to use:
-
-points should be specified with the left mouse button, and the polygon should be confirmed by pressing enter.
+# How to use:
+## Points should be specified with the left mouse button, and the polygon should be confirmed by pressing enter.
