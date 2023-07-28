@@ -94,10 +94,7 @@ bool intersect_shape(std::vector<sf::Vector2f> first_shape, std::vector<sf::Vect
 			else{
 				D = second_shape[j + 1];	
 			}
-			if(segment_intersect(A, B, C, D)){
-				std::cout << "{" << A.x << " " << A.y << "} {" << B.x << " " << B.y << "} {" << C.x << " " << C.y << "} {" << D.x << " " << D.y << "}" << std::endl;
-				return true;
-			}
+			if(segment_intersect(A, B, C, D)) return true;
 		}
 	}
 	return false;
@@ -120,15 +117,12 @@ int main()
 	sf::ContextSettings settings;
     settings.antialiasingLevel = 8.0;
 	sf::RenderWindow window(sf::VideoMode(1366, 768), "SFML works!", sf::Style::Default, settings);
-	sf::Vector2f barycenter;
+	sf::Vector2f barycenter, shift, new_dot;
 	std::vector<sf::Vector2f> dots = {};
-	//std::vector<sf::Vector2f> test_dots = {sf::Vector2f(0, 100), sf::Vector2f(12, 122), sf::Vector2f(20, 95)};
-	//std::cout << intersect_shape(dots, test_dots) << std::endl;
 	std::vector<std::vector<sf::Vector2f>> tiles = {};
 	float m, n;
 	double new_dist;
-
-	//system("cvlc \"/home/Eyjafja/не смотри умрешь [SrKbIj5uexk].opus\"");	
+	
 	while (window.isOpen()){
 		window.clear();
 
@@ -165,8 +159,8 @@ int main()
 		if(tiles.size() > 0){
 			std::vector<sf::Vector2f> optimized_dots;
 			double dist = 1e18;
-			for(int i = -n; i < 1366 - n; i += 10){
-				for(int j =  -m; j < 768 - m; j += 10){
+			for(int i = -n - 100; i < 1600 - n; i += 10){
+				for(int j =  -m - 100; j < 900 - m; j += 10){
 					std::vector<sf::Vector2f> new_dots;
 					for(int dot = 0; dot < dots.size(); dot++){
 						new_dots.push_back(sf::Vector2f(dots[dot].x + i, dots[dot].y + j));
@@ -175,15 +169,44 @@ int main()
 					if((new_dist < dist) && (!intersect_tiles(tiles, new_dots))){
 						dist = new_dist;
 						optimized_dots = std::vector<sf::Vector2f>(new_dots);
+						shift = sf::Vector2f(sf::Vector2i({i, j}));
 					}
 				}
 			}
-			std::cout << dist << std::endl;
-			tiles.push_back(optimized_dots);
+
+			int number_tiles = tiles.size();
+
+			for(int shape = 0; shape < number_tiles; shape++){
+				for(int multiplier = 1; multiplier < 10; multiplier++){
+					std::vector<sf::Vector2f> new_shape;
+					std::cout << shape << std::endl;
+					std::cout << tiles.size() << std::endl;
+					for(int dot = 0; dot < dots.size(); dot++){
+						new_dot = tiles[shape][dot];
+						new_dot.x += shift.x * multiplier;
+						new_dot.y += shift.y * multiplier;
+						new_shape.push_back(new_dot);
+					}
+					if(!intersect_tiles(tiles, new_shape)){
+						tiles.push_back(new_shape);	
+					}
+
+					new_shape = {};
+					for(int dot = 0; dot < dots.size(); dot++){
+						new_dot = tiles[shape][dot];
+						new_dot.x -= shift.x * multiplier;
+						new_dot.y -= shift.y * multiplier;
+						new_shape.push_back(new_dot);
+					}
+					if(!intersect_tiles(tiles, new_shape)){
+						tiles.push_back(new_shape);	
+					}
+				}
+			}
 		}
 
 		for(unsigned long i = 0; i < dots.size(); i++){
-			sf::ConvexShape shape(10);
+			sf::CircleShape shape(10);
 			shape.setPosition(dots[i]);
 			shape.setFillColor(sf::Color::Green);
 			window.draw(shape);
@@ -193,9 +216,9 @@ int main()
 			sf::ConvexShape shape(tiles[i].size());
 			for(int j = 0; j < tiles[i].size(); j++){
 				shape.setPoint(j, tiles[i][j]);
-				shape.setFillColor(sf::Color::Black);
+				shape.setFillColor(sf::Color::White);
 				shape.setOutlineThickness(2);
-				shape.setOutlineColor(sf::Color::White);
+				shape.setOutlineColor(sf::Color::Black);
 			}
 			window.draw(shape);
 		}
@@ -204,3 +227,4 @@ int main()
 
 	return 0;
 }
+
