@@ -4,11 +4,11 @@ How to install:
 
 1. install a c++ compilier and sfml
 
-2. '''git clone https://github.com/Eyjafja/packs_slon2023'''
+2. ```git clone https://github.com/Eyjafja/packs_slon2023```
 
-3. '''cd packs_slon2023'''
+3. ```cd packs_slon2023```
 
-4. '''make release'''
+4. ```make release```
 
 How to use
 
