@@ -122,14 +122,38 @@ void shape_as_points(sf::RenderWindow &window, std::vector<sf::Vector2f> shape, 
 }
 
 void draw_shape(sf::RenderWindow &window, std::vector<sf::Vector2f> shape, sf::Color fill_color, sf::Color outline_color){
-	sf::ConvexShape drawed(shape.size());
+	sf::ConvexShape drawing(shape.size());
 	for(int point = 0; point < shape.size(); point++){
-		drawed.setPoint(point, shape[point]);
-		drawed.setFillColor(fill_color);
-		drawed.setOutlineThickness(1);
-		drawed.setOutlineColor(outline_color);
+		drawing.setPoint(point, shape[point]);
+		drawing.setFillColor(fill_color);
+		drawing.setOutlineThickness(1);
+		drawing.setOutlineColor(outline_color);
 	}
-	window.draw(drawed);
+	window.draw(drawing);
+}
+
+sf::Vector2f find_closest(sf::Vector2f barycenter, std::vector<std::vector<sf::Vector2f>> cell, std::vector<std::vector<sf::Vector2f>> tiles){
+	double dist = 1e18;
+	double n = barycenter.x;
+	double m = barycenter.y;
+	sf::Vector2f shift;
+	double new_dist;
+	for(int i = -n -1366; i < 1366*2 - n; i += 10){
+		for(int j =  -m -768; j < 768*2 - m; j += 10){
+			for(int shape = 0; shape < cell.size(); shape++){
+				std::vector<sf::Vector2f> new_points;
+				for(int point = 0; point < cell[shape].size(); point++){
+					new_points.push_back(sf::Vector2f(cell[shape][point].x + i, cell[shape][point].y + j));
+				}
+				new_dist = sqrt(pow(find_barycenter(new_points).x - n, 2) + pow(find_barycenter(new_points).y - m, 2));
+				if((new_dist < dist) && (!intersect_tiles(tiles, new_points))){
+					dist = new_dist;
+					shift = sf::Vector2f(sf::Vector2i({i, j}));
+				}
+			}
+		}
+	}
+	return shift;
 }
 
 int main()
@@ -175,27 +199,8 @@ int main()
 			enter_pressed = false;
 		}
 		
-		barycenter = find_barycenter(points);
-		n = barycenter.x;
-		m = barycenter.y;
-		
 		if(tiles.size() > 0 && optimized != 2){
-			std::vector<sf::Vector2f> optimized_points;
-			double dist = 1e18;
-			for(int i = -n -1366; i < 1366*2 - n; i += 10){
-				for(int j =  -m -768; j < 768*2 - m; j += 10){
-					std::vector<sf::Vector2f> new_points;
-					for(int point = 0; point < points.size(); point++){
-						new_points.push_back(sf::Vector2f(points[point].x + i, points[point].y + j));
-					}
-					new_dist = sqrt(pow(find_barycenter(new_points).x - n, 2) + pow(find_barycenter(new_points).y - m, 2));
-					if((new_dist < dist) && (!intersect_tiles(tiles, new_points))){
-						dist = new_dist;
-						optimized_points = std::vector<sf::Vector2f>(new_points);
-						shift = sf::Vector2f(sf::Vector2i({i, j}));
-					}
-				}
-			}
+			shift = find_closest(find_barycenter(points), std::vector<std::vector<sf::Vector2f>>({points}), tiles);	
 
 			int number_tiles = tiles.size();
 
