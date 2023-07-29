@@ -2,19 +2,20 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <functional>
 
 #define det(q, w, e, r) ((q)*(r) - (w)*(e))
 
-sf::Vector2f find_barycenter(std::vector<sf::Vector2f> dots){
+sf::Vector2f find_barycenter(std::vector<sf::Vector2f> points){
 	sf::Vector2f barycenter, next_coords, current_coords;
-	double area, intervalue, area_sum = 0, x_sum = 0, y_sum = 0, n = dots.size();
+	double area, intervalue, area_sum = 0, x_sum = 0, y_sum = 0, n = points.size();
 	for(int i = 0; i < n; i++){
-		current_coords = dots[i];
+		current_coords = points[i];
 		if(i != n - 1){
-			next_coords = dots[i + 1];
+			next_coords = points[i + 1];
 		}
 		else{
-			next_coords = dots[0];
+			next_coords = points[0];
 		}
 
 		intervalue = (current_coords.x * next_coords.y - next_coords.x * current_coords.y);
@@ -40,7 +41,7 @@ bool onSegment(sf::Vector2f A, sf::Vector2f B, float x, float y){
 
 bool segment_intersect(sf::Vector2f A, sf::Vector2f B, sf::Vector2f C, sf::Vector2f D){
 	float a1, b1, c1, a2, b2, c2;
-	float num, den, num2, dot_x, dot_y;
+	float num, den, num2, point_x, point_y;
 
 	if(A.x == B.x){
 		a1 = 0;
@@ -71,9 +72,9 @@ bool segment_intersect(sf::Vector2f A, sf::Vector2f B, sf::Vector2f C, sf::Vecto
 	}
 	if(std::abs(den) < 1e-9) return false;
 	num2 = det(a1, c1, a2, c2);
-	dot_x = - num2/den;
-	dot_y = num/den;
-	return onSegment(A, B, dot_x, dot_y) && onSegment(C, D, dot_x, dot_y);
+	point_x = - num2/den;
+	point_y = num/den;
+	return onSegment(A, B, point_x, point_y) && onSegment(C, D, point_x, point_y);
 }
 
 bool intersect_shape(std::vector<sf::Vector2f> first_shape, std::vector<sf::Vector2f> second_shape){
@@ -109,16 +110,38 @@ bool intersect_tiles(std::vector<std::vector<sf::Vector2f>> tiles, std::vector<s
 	return false;
 }
 
+void shape_as_points(sf::RenderWindow &window, std::vector<sf::Vector2f> shape, sf::Color fill_color, sf::Color outline_color, unsigned radius){
+	for(unsigned long id = 0; id < shape.size(); id++){
+			sf::CircleShape point(radius);
+			point.setPosition(shape[id]);
+			point.setFillColor(fill_color);
+			point.setOutlineThickness(1);
+			point.setOutlineColor(outline_color);
+			window.draw(point);
+		}
+}
+
+void draw_shape(sf::RenderWindow &window, std::vector<sf::Vector2f> shape, sf::Color fill_color, sf::Color outline_color){
+	sf::ConvexShape drawed(shape.size());
+	for(int point = 0; point < shape.size(); point++){
+		drawed.setPoint(point, shape[point]);
+		drawed.setFillColor(fill_color);
+		drawed.setOutlineThickness(1);
+		drawed.setOutlineColor(outline_color);
+	}
+	window.draw(drawed);
+}
+
 int main()
 {
-	bool button_pressed = false, key_pressed = false;
+	bool button_pressed = false, enter_pressed = false;
 	unsigned optimized = 0;
 	int shiftx, y;
 	sf::ContextSettings settings;
     settings.antialiasingLevel = 8.0;
 	sf::RenderWindow window(sf::VideoMode(1366, 768), "Packing", sf::Style::Default, settings);
-	sf::Vector2f barycenter, shift, new_dot;
-	std::vector<sf::Vector2f> dots = {};
+	sf::Vector2f barycenter, shift, new_point;
+	std::vector<sf::Vector2f> points = {};
 	std::vector<std::vector<sf::Vector2f>> tiles = {};
 	float m, n;
 	double new_dist;
@@ -134,7 +157,7 @@ int main()
 
 		if (sf::Mouse::isButtonPressed(sf::Mouse::Left)){
 			if(!button_pressed){
-				dots.push_back(sf::Vector2f(sf::Mouse::getPosition(window)));
+				points.push_back(sf::Vector2f(sf::Mouse::getPosition(window)));
 				button_pressed = true;
 			}
 		}
@@ -143,32 +166,32 @@ int main()
 		}
 
 		if(sf::Keyboard::isKeyPressed(sf::Keyboard::Enter)){
-			if(!key_pressed){
-				tiles.push_back(dots);
-				key_pressed = true;
+			if(!enter_pressed){
+				tiles.push_back(points);
+				enter_pressed = true;
 			}
 		}
 		else{
-			key_pressed = false;
+			enter_pressed = false;
 		}
 		
-		barycenter = find_barycenter(dots);
+		barycenter = find_barycenter(points);
 		n = barycenter.x;
 		m = barycenter.y;
 		
 		if(tiles.size() > 0 && optimized != 2){
-			std::vector<sf::Vector2f> optimized_dots;
+			std::vector<sf::Vector2f> optimized_points;
 			double dist = 1e18;
-			for(int i = -n; i < 1366 - n; i += 10){
-				for(int j =  -m; j < 768 - m; j += 10){
-					std::vector<sf::Vector2f> new_dots;
-					for(int dot = 0; dot < dots.size(); dot++){
-						new_dots.push_back(sf::Vector2f(dots[dot].x + i, dots[dot].y + j));
+			for(int i = -n -1366; i < 1366*2 - n; i += 10){
+				for(int j =  -m -768; j < 768*2 - m; j += 10){
+					std::vector<sf::Vector2f> new_points;
+					for(int point = 0; point < points.size(); point++){
+						new_points.push_back(sf::Vector2f(points[point].x + i, points[point].y + j));
 					}
-					new_dist = sqrt(pow(find_barycenter(new_dots).x - n, 2) + pow(find_barycenter(new_dots).y - m, 2));
-					if((new_dist < dist) && (!intersect_tiles(tiles, new_dots))){
+					new_dist = sqrt(pow(find_barycenter(new_points).x - n, 2) + pow(find_barycenter(new_points).y - m, 2));
+					if((new_dist < dist) && (!intersect_tiles(tiles, new_points))){
 						dist = new_dist;
-						optimized_dots = std::vector<sf::Vector2f>(new_dots);
+						optimized_points = std::vector<sf::Vector2f>(new_points);
 						shift = sf::Vector2f(sf::Vector2i({i, j}));
 					}
 				}
@@ -180,20 +203,19 @@ int main()
 				unsigned multiplier = 1;
 				while((std::abs(shift.x * multiplier) < 1366 * 2) && (std::abs(shift.y * multiplier) < 768 * 2)){
 					std::vector<sf::Vector2f> new_shape;
-					for(int dot = 0; dot < dots.size(); dot++){
-						new_dot = tiles[shape][dot];
-						new_dot.x += shift.x * multiplier;
-						new_dot.y += shift.y * multiplier;
-						new_shape.push_back(new_dot);
+					for(int point = 0; point < points.size(); point++){
+						new_point = tiles[shape][point];
+						new_point.x += shift.x * multiplier;
+						new_point.y += shift.y * multiplier;
+						new_shape.push_back(new_point);
 					}
 					tiles.push_back(new_shape);	
-
 					new_shape = {};
-					for(int dot = 0; dot < dots.size(); dot++){
-						new_dot = tiles[shape][dot];
-						new_dot.x -= shift.x * multiplier;
-						new_dot.y -= shift.y * multiplier;
-						new_shape.push_back(new_dot);
+					for(int point = 0; point < points.size(); point++){
+						new_point = tiles[shape][point];
+						new_point.x -= shift.x * multiplier;
+						new_point.y -= shift.y * multiplier;
+						new_shape.push_back(new_point);
 					}
 					tiles.push_back(new_shape);	
 					multiplier++;
@@ -203,25 +225,11 @@ int main()
 		}		
 		
 		for(int i = 0; i < tiles.size(); i++){
-			sf::ConvexShape shape(tiles[i].size());
-			for(int j = 0; j < tiles[i].size(); j++){
-				shape.setPoint(j, tiles[i][j]);
-				shape.setFillColor(sf::Color(192, 192, 192));
-				shape.setOutlineThickness(1);
-				shape.setOutlineColor(sf::Color::Black);
-			}
-			window.draw(shape);
+			draw_shape(window, tiles[i], sf::Color(192, 192, 192), sf::Color::Black);
 		}
-
-		for(unsigned long i = 0; i < dots.size(); i++){
-			sf::CircleShape shape(4);
-			shape.setPosition(dots[i]);
-			shape.setFillColor(sf::Color(192, 192, 192));
-			window.draw(shape);
-		}
+		shape_as_points(window, points, sf::Color(192, 192, 192), sf::Color::Black, 4);
 		window.display();
 	}
 
 	return 0;
 }
-
