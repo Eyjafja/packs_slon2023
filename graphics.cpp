@@ -2,7 +2,6 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
-#include <functional>
 
 #define det(q, w, e, r) ((q)*(r) - (w)*(e))
 
@@ -156,19 +155,48 @@ sf::Vector2f find_closest(sf::Vector2f barycenter, std::vector<std::vector<sf::V
 	return shift;
 }
 
+void mult_by_vector(int number_tiles, sf::Vector2f shift, std::vector<std::vector<sf::Vector2f>> &tiles){
+	sf::Vector2f new_point;
+	for(int shape = 0; shape < number_tiles; shape++){
+		unsigned multiplier = 1;
+		while((std::abs(shift.x * multiplier) < 1366 * 2) && (std::abs(shift.y * multiplier) < 768 * 2)){
+			std::vector<sf::Vector2f> new_shape;
+			for(int point = 0; point < tiles[shape].size(); point++){
+				new_point = tiles[shape][point];
+				new_point.x += shift.x * multiplier;
+				new_point.y += shift.y * multiplier;
+				new_shape.push_back(new_point);
+			}
+			tiles.push_back(new_shape);	
+			new_shape = {};
+			for(int point = 0; point < tiles[shape].size(); point++){
+				new_point = tiles[shape][point];
+				new_point.x -= shift.x * multiplier;
+				new_point.y -= shift.y * multiplier;
+				new_shape.push_back(new_point);
+			}
+			tiles.push_back(new_shape);	
+			multiplier++;
+		}
+	}
+}
+
+sf::Vector2f rot(sf::Vector2f point, float alpha){
+	float new_x, new_y;
+	new_x = (point.x * cos(alpha)) + (point.y * sin(alpha));
+	new_y = -(point.x * sin(alpha)) + (point.y * cos(alpha));
+	return sf::Vector2f({new_x, new_y});
+}
+
 int main()
 {
 	bool button_pressed = false, enter_pressed = false;
-	unsigned optimized = 0;
-	int shiftx, y;
 	sf::ContextSettings settings;
     settings.antialiasingLevel = 8.0;
 	sf::RenderWindow window(sf::VideoMode(1366, 768), "Packing", sf::Style::Default, settings);
 	sf::Vector2f barycenter, shift, new_point;
 	std::vector<sf::Vector2f> points = {};
 	std::vector<std::vector<sf::Vector2f>> tiles = {};
-	float m, n;
-	double new_dist;
 	
 	while (window.isOpen()){
 		window.clear(sf::Color(128, 128, 128));
@@ -192,42 +220,21 @@ int main()
 		if(sf::Keyboard::isKeyPressed(sf::Keyboard::Enter)){
 			if(!enter_pressed){
 				tiles.push_back(points);
+				for(int i = 0; i < 2; i++){
+					shift = find_closest(find_barycenter(points), std::vector<std::vector<sf::Vector2f>>({points}), tiles);	
+					mult_by_vector(tiles.size(), shift, tiles);
+				}
 				enter_pressed = true;
 			}
 		}
-		else{
-			enter_pressed = false;
-		}
-		
-		if(tiles.size() > 0 && optimized != 2){
-			shift = find_closest(find_barycenter(points), std::vector<std::vector<sf::Vector2f>>({points}), tiles);	
 
-			int number_tiles = tiles.size();
-
-			for(int shape = 0; shape < number_tiles; shape++){
-				unsigned multiplier = 1;
-				while((std::abs(shift.x * multiplier) < 1366 * 2) && (std::abs(shift.y * multiplier) < 768 * 2)){
-					std::vector<sf::Vector2f> new_shape;
-					for(int point = 0; point < points.size(); point++){
-						new_point = tiles[shape][point];
-						new_point.x += shift.x * multiplier;
-						new_point.y += shift.y * multiplier;
-						new_shape.push_back(new_point);
-					}
-					tiles.push_back(new_shape);	
-					new_shape = {};
-					for(int point = 0; point < points.size(); point++){
-						new_point = tiles[shape][point];
-						new_point.x -= shift.x * multiplier;
-						new_point.y -= shift.y * multiplier;
-						new_shape.push_back(new_point);
-					}
-					tiles.push_back(new_shape);	
-					multiplier++;
-				}
+		if(sf::Keyboard::isKeyPressed(sf::Keyboard::R)){
+			if(enter_pressed){
+				tiles = {};
+				points = {};
+				enter_pressed = false;
 			}
-			optimized++;
-		}		
+		}
 		
 		for(int i = 0; i < tiles.size(); i++){
 			draw_shape(window, tiles[i], sf::Color(192, 192, 192), sf::Color::Black);
